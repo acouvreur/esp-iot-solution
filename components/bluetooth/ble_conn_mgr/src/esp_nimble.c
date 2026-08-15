@@ -3736,6 +3736,19 @@ esp_err_t esp_ble_conn_adv_params_set(const esp_ble_conn_adv_params_t *params)
     return ESP_OK;
 }
 
+esp_err_t esp_ble_conn_adv_params_get(esp_ble_conn_adv_params_t *out_params)
+{
+    if (!s_conn_session) {
+        return ESP_ERR_INVALID_STATE;
+    }
+    if (!out_params) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    *out_params = s_conn_session->adv_params_cfg;
+    return ESP_OK;
+}
+
 static uint16_t esp_ble_conn_adv_data_max_len(void)
 {
 #if defined(CONFIG_BLE_CONN_MGR_EXTENDED_ADV) && defined(CONFIG_BT_NIMBLE_EXT_ADV_MAX_SIZE)
@@ -4144,6 +4157,28 @@ esp_err_t esp_ble_conn_adv_stop(void)
     ESP_LOGW(TAG, "Failed to stop advertising; rc=%d", rc);
     return ESP_FAIL;
 #else
+    return ESP_ERR_INVALID_STATE;
+#endif
+}
+
+esp_err_t esp_ble_conn_adv_is_active(bool *out_active)
+{
+#if defined(CONFIG_BLE_CONN_MGR_ROLE_PERIPHERAL) || defined(CONFIG_BLE_CONN_MGR_ROLE_BOTH)
+    if (!s_conn_session) {
+        return ESP_ERR_INVALID_STATE;
+    }
+    if (!out_active) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+#if BLE_CONN_MGR_NIMBLE_USE_EXT_GAP
+    *out_active = ble_gap_ext_adv_active(s_conn_session->ext_adv_handle) != 0;
+#else
+    *out_active = ble_gap_adv_active() != 0;
+#endif
+    return ESP_OK;
+#else
+    (void)out_active;
     return ESP_ERR_INVALID_STATE;
 #endif
 }
